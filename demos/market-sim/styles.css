@@ -1,0 +1,90 @@
+    :root {
+      --buy: #148c3c;        /* zielony — kupno / wsparcie */
+      --sell: #c82828;       /* czerwony — sprzedaż / opór */
+      --liq: #1e5ac8;        /* niebieski — płynność */
+      --bg: #0f1420;
+      --panel: #161d2c;
+      --panel2: #1d2638;
+      --text: #e6ebf5;
+      --muted: #9aa6bd;
+      --line: #2a3550;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 0; padding: 16px;
+      background: var(--bg); color: var(--text);
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+
+    #errbar {
+      display: none; background: #5a1620; color: #ffd7d7; border: 1px solid #c82828;
+      padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-family: monospace; font-size: 12px;
+    }
+
+    /* Pasek wskaźników (KPI) */
+    .kpi {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+    }
+    .kpi .cell {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 14px; min-width: 110px;
+    }
+    .kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .kpi .val { font-size: 20px; font-weight: 700; }
+    .kpi .val.buy { color: #4fd17e; }
+    .kpi .val.sell { color: #ff7676; }
+
+    /* Układ pulpitu: 2 kolumny */
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+    }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+    }
+    .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .panel-head h2 { margin: 0; }
+    .tf-group { display: flex; align-items: center; gap: 14px; }
+    .tf { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin: 0; }
+    .tf select { padding: 4px 8px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+    .zoombtn { padding: 1px 8px; font-size: 15px; line-height: 1.2; font-weight: 700; min-width: 26px; }
+    #candleCanvas { position: absolute; top: 0; left: 0; height: 100%; }
+
+    .chart-wrap { position: relative; height: 320px; }
+    .canvas-wrap { position: relative; }
+    canvas.raw { width: 100%; display: block; background: #0c111c; border-radius: 6px; }
+
+    /* Sterowanie */
+    .controls label { display: block; margin: 8px 0 2px; font-size: 12px; color: var(--muted); }
+    .controls select, .controls input[type="number"] {
+      width: 100%; padding: 6px; background: var(--panel2); color: var(--text);
+      border: 1px solid var(--line); border-radius: 6px;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row > * { flex: 1; }
+    button {
+      cursor: pointer; border: none; border-radius: 6px; padding: 8px 10px;
+      font-weight: 600; background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    }
+    button:hover { background: #28324a; }
+    button.primary { background: var(--liq); border-color: var(--liq); color: #fff; }
+    button.whale { background: #6b1fae; border-color: #6b1fae; color: #fff; }
+    .toggles { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+    .toggles label { display: inline-flex; align-items: center; gap: 5px; color: var(--text); margin: 0; }
+    .status { font-size: 12px; margin-top: 8px; min-height: 32px; color: var(--muted); line-height: 1.4; }
+    .status b { color: var(--text); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+    th, td { padding: 2px 6px; text-align: right; }
+    thead th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+    td.bidp { color: #4fd17e; } td.askp { color: #ff7676; }
+    tr.spreadrow td { color: var(--muted); text-align: center; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); font-size: 11px; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .badge.ok { background: #14361f; color: #5fe08c; }
+    .badge.warn { background: #4a3a12; color: #ffd76a; }
+    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+

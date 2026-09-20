@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarketSim | Franciszek Stefaniuk</title>
+  <meta name="description" content="Interaktywna symulacja księgi zleceń. Projekt akademicki Franciszka Stefaniuka.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%233249ef'/%3E%3Cpath d='M10 24V8h13v4h-9v3h7v4h-7v5z' fill='white'/%3E%3C/svg%3E">
+
+  <!-- Chart.js z CDN (wykres ceny). Reszta wizualizacji rysowana jest na czystym <canvas>. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="portfolio.css" />
+</head>
+<body>
+  <header class="portfolio-demo-header"><a href="../../index.html#market-sim">← Portfolio</a><a href="https://github.com/theFishy-1/MarketSim" target="_blank" rel="noopener noreferrer">Kod na GitHub ↗</a></header>
+  <main>
+  <p class="demo-eyebrow">MarketSim / Projekt akademicki</p>
+  <h1>Symulacja rynku giełdowego</h1>
+  <p class="demo-intro">Zmieniaj płynność, składaj zlecenia i obserwuj reakcję rynku. Dane są generowane przez symulację. Zacznij od przycisku „Zlecenie wieloryba”, aby zobaczyć wpływ dużego zlecenia.</p>
+  <noscript><p class="demo-intro">Do uruchomienia symulacji włącz JavaScript w przeglądarce.</p></noscript>
+
+  <div id="errbar" role="alert"></div>
+
+  <!-- Pasek wskaźników -->
+  <div class="kpi" id="kpi">
+    <div class="cell"><div class="label">Cena</div><div class="val" id="k-price">—</div></div>
+    <div class="cell"><div class="label">BID (kupno)</div><div class="val buy" id="k-bid">—</div></div>
+    <div class="cell"><div class="label">ASK (sprzedaż)</div><div class="val sell" id="k-ask">—</div></div>
+    <div class="cell"><div class="label">Spread</div><div class="val" id="k-spread">—</div></div>
+    <div class="cell"><div class="label">Wolumen / tura</div><div class="val" id="k-vol">—</div></div>
+    <div class="cell"><div class="label">Wolumen łącznie</div><div class="val" id="k-voltot">—</div></div>
+    <div class="cell"><div class="label">Czas rynku</div><div class="val" id="k-clock">—</div><div class="label" id="k-tick" style="margin-top:2px">tura —</div></div>
+    <div class="cell"><div class="label">Tryb rynku (taker/maker)</div><div class="val"><span class="badge ok" id="k-ratio">—</span></div></div>
+  </div>
+
+  <div class="grid">
+    <!-- WIERSZ 2: wykres ceny -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Wykres ceny</h2>
+        <div class="tf-group">
+          <label class="tf">Typ
+            <select id="chartType">
+              <option value="line">Linia</option>
+              <option value="candles">Świece</option>
+            </select>
+          </label>
+          <label class="tf">Interwał
+            <select id="timeframe"></select>
+          </label>
+          <label class="tf"><input type="checkbox" id="showBook" checked /> Księga</label>
+          <label class="tf">Nakładka
+            <select id="bookMode" title="Spoczynek + ślad: ściany spoczywających zleceń (zielony popyt / czerwona podaż) ze złotym śladem rzeczywiście zrealizowanego wolumenu. Wolumen: czysty profil zrealizowanego wolumenu wg ceny.">
+              <option value="rest">Spoczynek + ślad</option>
+              <option value="volume">Wolumen</option>
+            </select>
+          </label>
+          <span class="tf" title="Przybliżanie wykresu (możesz też kółkiem myszy nad wykresem)">Zoom
+            <button type="button" class="zoombtn" id="zoomOut" title="Oddal">−</button>
+            <button type="button" class="zoombtn" id="zoomIn" title="Przybliż">+</button>
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart" role="img" aria-label="Wykres ceny w symulacji"></canvas>
+        <canvas id="candleCanvas" class="raw" style="display:none" role="img" aria-label="Świecowy wykres ceny w symulacji"></canvas>
+      </div>
+    </div>
+
+    <!-- WIERSZ 2: głębokość rynku -->
+    <div class="panel">
+      <h2>Głębokość rynku</h2>
+      <div class="canvas-wrap"><canvas id="depthCanvas" class="raw" height="300" role="img" aria-label="Głębokość rynku: zlecenia kupna i sprzedaży"></canvas></div>
+    </div>
+
+    <!-- WIERSZ 3: mapa cieplna płynności w czasie -->
+    <div class="panel">
+      <h2>Mapa płynności w czasie</h2>
+      <div class="canvas-wrap"><canvas id="heatCanvas" class="raw" height="260" role="img" aria-label="Mapa płynności rynku w czasie"></canvas></div>
+    </div>
+
+    <!-- WIERSZ 3: sterowanie + formularz + księga -->
+    <div class="panel controls">
+      <h2>Sterowanie</h2>
+      <div class="row">
+        <button class="primary" id="btnStart">Start</button>
+        <button id="btnPause">Pauza</button>
+        <button id="btnReset">Reset</button>
+      </div>
+      <label for="simSpeed">Tempo symulacji (czas rynku / s): <span id="simSpeedLabel"></span></label>
+      <input type="range" id="simSpeed" min="0" max="1000" step="1" value="440" style="width:100%" />
+      <div class="status" id="speedReadout" style="min-height:0;margin-top:2px"></div>
+      <label for="marketPace">Tempo rynku (czas na 1 tick)</label>
+      <select id="marketPace">
+        <option value="0.05" selected>Bardzo płynny (0,05 s/tick — ~20 akt./s, bardzo gęsta księga, wąski spread)</option>
+        <option value="0.1">Średnio płynny (0,1 s/tick — średnia księga)</option>
+        <option value="0.5">Mało płynny (0,5 s/tick — cienka księga, szeroki spread, duże skoki)</option>
+      </select>
+      <div class="toggles">
+        <label><input type="checkbox" id="tgNoise" checked /> Traderzy szumowi</label>
+        <label><input type="checkbox" id="tgTrend" checked /> Podążający za trendem</label>
+        <label><input type="checkbox" id="tgWhale" checked /> Wieloryby</label>
+      </div>
+
+      <h2 style="margin-top:14px;">Twoje zlecenie</h2>
+      <form id="orderForm">
+        <div class="row">
+          <div>
+            <label for="orderSide">Strona</label>
+            <select id="orderSide"><option value="buy">Kupno</option><option value="sell">Sprzedaż</option></select>
+          </div>
+          <div>
+            <label for="orderType">Typ</label>
+            <select id="orderType"><option value="market">Rynkowe</option><option value="limit">Z limitem</option></select>
+          </div>
+        </div>
+        <label for="orderPrice">Cena (dla zlecenia z limitem)</label>
+        <input type="number" id="orderPrice" step="0.05" min="0.05" placeholder="np. 100.50" />
+        <label for="orderQuantity">Ilość</label>
+        <input type="number" id="orderQuantity" step="1" min="1" value="20" />
+        <div class="row" style="margin-top:8px;">
+          <button class="primary" type="submit">Złóż zlecenie</button>
+          <button class="whale" type="button" id="btnWhale">🐋 Zlecenie wieloryba</button>
+        </div>
+      </form>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+
+      <h2 style="margin-top:10px;">Księga zleceń</h2>
+      <table id="bookTable">
+        <thead><tr><th>BID cena</th><th>ilość</th><th>ASK cena</th><th>ilość</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/order-book.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/agents.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
